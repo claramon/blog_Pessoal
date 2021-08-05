@@ -13,13 +13,13 @@ import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-@Entity
-@Table(name = "tb_tema")
+@Entity // evidencia que os dados precisam ser guardados em banco de dados
+@Table(name = "tb_tema")// cerate table postagem 
 public class Tema {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private long id;
+	@Id // primary key
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment + not null
+	private long id; // bigint
 	
 	@NotNull
 	private String descricao;

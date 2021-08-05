@@ -22,19 +22,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Table(name = "postagem") //criando a tabela no database
 public class Postagem {
 
-	@Id // configura que o id declarado abaixo é o ID da postagem
-	@GeneratedValue(strategy = GenerationType.IDENTITY) // ID virará primary key no database
-	private long id;
+	@Id // ID virará primary key no database
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment + not null
+	private long id; // bigint
 	
 	@NotNull
-	@Size(min = 5, max = 100)
-	private String titulo;
+	@Size(min = 5, max = 500)
+	private String titulo; // varchar (100)
 	
 	@NotNull
 	@Size(min=10, max=500)
-	private String texto;
+	private String texto; //varchar (500)
 	
-	@Temporal(TemporalType.TIMESTAMP)
+	@Temporal(TemporalType.TIMESTAMP) // datatime
 	private Date date = new java.sql.Date(System.currentTimeMillis()); //já captura a data e hr que a postagem foi feita
 
 	@ManyToOne //inner join entre 'postagem' e 'tema'
