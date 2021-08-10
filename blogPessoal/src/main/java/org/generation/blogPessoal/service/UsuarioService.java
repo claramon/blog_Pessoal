@@ -1,6 +1,8 @@
 package org.generation.blogPessoal.service;
 
+import java.time.LocalDate;
 import java.nio.charset.Charset;
+import java.time.Period;
 import java.util.Optional;
 
 import org.apache.commons.codec.binary.Base64;
@@ -8,42 +10,97 @@ import org.generation.blogPessoal.model.UserLogin;
 import org.generation.blogPessoal.model.Usuario;
 import org.generation.blogPessoal.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service// é um serviço 
 public class UsuarioService {
 
 	@Autowired
-	private UsuarioRepository repository;
-	
-	public Usuario CadastrarUsuario(Usuario usuario) {// regra de negócio - cadastrar usuário
-		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();// é o encoder - colocamos esse BCryptPasswordEncoder na classe de configuração
-	
-		String senhaEncoder = encoder.encode(usuario.getSenha()); // recebe o objeto encoder e pede uma senha, que receberá do usuario
-		usuario.setSenha(senhaEncoder); // acessar e modificar o atributo senha, e passa a senha encriptada (acima)
+	private UsuarioRepository usuarioRepository;
+
+	public Optional <Usuario> cadastrarUsuario(Usuario usuario) {
 		
-		return repository.save(usuario); // vamos salvar o usuario com a senha encriptada
+		if(usuarioRepository.findByUsuario(usuario.getUsuario()).isPresent())
+			throw new ResponseStatusException(
+					HttpStatus.BAD_REQUEST, "Usuário já existe!", null);
+
+		int idade = Period.between(usuario.getDataNascimento(), LocalDate.now()).getYears();
+			
+		if(idade < 18)
+			throw new ResponseStatusException(
+					HttpStatus.BAD_REQUEST, "Usuário menor de 18 anos", null);
+				
+		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+		String senhaEncoder = encoder.encode(usuario.getSenha());
+		usuario.setSenha(senhaEncoder);
+
+		return Optional.of(usuarioRepository.save(usuario));
+	}
+
+	public Optional<Usuario> atualizarUsuario(Usuario usuario){
+	
+		if(usuarioRepository.findById(usuario.getId()).isPresent()) {
+		
+			Optional<Usuario> buscaUsuario = usuarioRepository.findByUsuario(usuario.getUsuario());
+			
+			if( buscaUsuario.isPresent() ){
+
+				if(buscaUsuario.get().getId() != usuario.getId())
+					throw new ResponseStatusException(
+						HttpStatus.BAD_REQUEST, "Usuário já existe!", null);
+			}
+
+			int idade = Period.between(usuario.getDataNascimento(), LocalDate.now()).getYears();
+			
+			if(idade < 18)
+				throw new ResponseStatusException(
+						HttpStatus.BAD_REQUEST, "Usuário menor de 18 anos", null);
+			
+			BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+			
+			String senhaEncoder = encoder.encode(usuario.getSenha());
+			usuario.setSenha(senhaEncoder);
+			
+			return Optional.of(usuarioRepository.save(usuario));
+		
+		}else {
+			
+			throw new ResponseStatusException(
+					HttpStatus.NOT_FOUND, "Usuário não encontrado!", null);
+			
+		}
+		
 	}
 	
-	public Optional<UserLogin> Logar(Optional<UserLogin> user){// regra de negócio - login => não usa mais o tipo usuário, mas user login, pq eu quero devolver pro usuário das informções do userlogin (nome, usuario, senha e token)
-		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(); // instancia o encoder novamente
-		Optional<Usuario> usuario = repository.findByUsuario(user.get().getUsuario()); // cria obejto do tipo optional, que recebe usuario, usa o metodo que criamos no repository (findbyusuario), fazendo a pesquisa pelo nome do usuario que o cliente digitou
-		
-		if(usuario.isPresent()) { // se o obj usuario tiver algo dentro...
-			if(encoder.matches(user.get().getSenha(), usuario.get().getSenha())) {//... vou comparar a senha encriptada com a que o usuario digitou
+	public Optional<UserLogin> Logar(Optional<UserLogin> usuarioLogin) {
+
+		BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+		Optional<Usuario> usuario = usuarioRepository.findByUsuario(usuarioLogin.get().getUsuario());
+
+		if (usuario.isPresent()) {
+			
+			if (encoder.matches(usuarioLogin.get().getSenha(), usuario.get().getSenha())) {
+
+				String auth = usuarioLogin.get().getUsuario() + ":" + usuarioLogin.get().getSenha();
+				byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+				String authHeader = "Basic " + new String(encodedAuth);
+
 				
-				String auth = user.get().getUsuario() + ":" + user.get().getSenha();// devolver a senha encriptada, concatena duas infos: usuario + senha dentro da string
-				byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));// rede byte: pega o encode com base 64 e recebe a string acima, com o formato de byte que quero "us-ascii"
-				String authHeader = "Basic " + new String(encodedAuth); // converte a rede byte em string
-				
-				user.get().setToken(authHeader); //preenchi o token
-				user.get().setNome(usuario.get().getNome()); // acessa o user com o metodo set e coloca o que veio no username (usuario.get().getNome())
-				
-				return user;
+				usuarioLogin.get().setNome(usuario.get().getNome());
+				usuarioLogin.get().setSenha(usuario.get().getSenha());
+				usuarioLogin.get().setToken(authHeader);
+				return usuarioLogin;
+
 			}
 		}
-		return null;
+		
+		throw new ResponseStatusException(
+				HttpStatus.UNAUTHORIZED, "Usuário ou senha inválidos!", null);
+		
 	}
 	
 }

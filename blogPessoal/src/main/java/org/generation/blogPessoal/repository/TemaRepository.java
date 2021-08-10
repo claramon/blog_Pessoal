@@ -10,5 +10,7 @@ public interface TemaRepository extends JpaRepository<Tema, Long>{
 	
 	public List<Tema> findAllByDescricaoContainingIgnoreCase(String descricao); //é a descrição que montamos em 'tema'
 	// select * from blogPessoal + where titulo + like "%titulo%"
+	
+	
 }
 
