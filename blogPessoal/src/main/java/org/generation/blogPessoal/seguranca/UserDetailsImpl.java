@@ -1,6 +1,7 @@
 package org.generation.blogPessoal.seguranca;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.generation.blogPessoal.model.Usuario;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,20 +13,21 @@ public class UserDetailsImpl implements UserDetails{ // implements = aplicar uma
 	
 	private String userName;
 	private String password;
+	private List<GrantedAuthority> authorities;
 	
-	public UserDetailsImpl(Usuario user) { //populariza o método user com login e senha
+	public UserDetailsImpl(Usuario user) { // popula o método user com login e senha, obrigada o usuário a por email e senha
 		this.userName = user.getUsuario();
 		this.password = user.getSenha();
 	}
 	
-	public UserDetailsImpl() {} //PORQUE?
+	public UserDetailsImpl() {} // para instanciar algo sem precisar passar o método, poed puxar outras coisas do usuário, não só email e senha, mas o nome tmb, por exemplo
 	
 	
 	
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		// TODO Auto-generated method stub
-		return null;
+		return authorities;
 	}
 
 	@Override
